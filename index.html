@@ -1,0 +1,256 @@
+<!DOCTYPE html lang="zh-cn">
+<html>
+    <head>
+        <meta charset="utf-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <title>Home</title>
+        <meta name="viewport" content="width=device-width, initial-scale=1" shrink-to-fit=no>
+        <script src="https://cdn.bootcss.com/jquery/3.2.1/jquery.slim.min.js" integrity="sha384-KJ3o2DKtIkvYIK3UENzmM7KCkRr/rE9/Qpg6aAZGJwFDMVNA/GpGFF93hXpG5KkN" crossorigin="anonymous"></script>
+        <script src="https://cdn.bootcss.com/popper.js/1.12.9/umd/popper.min.js" integrity="sha384-ApNbgh9B+Y1QKtv3Rn7W3mgPxhU9K/ScQsAP7hUibX39j7fakFPskvXusvfa0b4Q" crossorigin="anonymous"></script>
+        <link rel="stylesheet" href="https://cdn.bootcss.com/bootstrap/4.0.0/css/bootstrap.min.css" integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+        <script src="https://cdn.bootcss.com/bootstrap/4.0.0/js/bootstrap.min.js" integrity="sha384-JZR6Spejh4U02d8jOt6vLEHfe/JQGiRRSQQxSfFWpi1MquVdAyjUar5+76PVCmYl" crossorigin="anonymous"></script>
+        <script src="https://cdn.staticfile.org/fetch/3.0.0/fetch.min.js"></script>
+        <style>
+            .carousel {
+                height: 300px;
+                background-color: #000;
+            }
+
+            .carousel-item {
+                height: 300px;
+                background-color: #000;
+            }
+
+            .carousel img {
+                height: 300px;
+            }
+        </style>
+        <script>
+            $(function(){
+                // add item
+                fetch('/query', {
+                    method: 'get'
+                })
+                .then(response => response.json())
+                .then(jsonData => $.each(jsonData, function(i, item) {addItem(item)}))
+
+                // add banner
+                addBanner()
+
+                $('#query_name')
+            });
+
+            function input_change() {
+                // len = $('#query_name').val().length
+                // if (len == 0 || len > 1) {
+                //     query()
+                // }
+            }
+
+            function query() {
+                key = $('#query_name').val()
+                fetch('/query?from=name&name=' + key, {
+                    method: 'get'
+                })
+                .then(response => response.json())
+                .then(jsonData => function() {
+                    cleanItems()
+                    if(jsonData.length > 0) {
+                        $.each(jsonData, function(i, item) {
+                            addItem(item)
+                        })
+                    }
+                }())
+            }
+
+            function cleanItems() {
+                $("#item").html("")
+            }
+
+            function addBanner() {
+                fetch('/banner_list', {
+                    method: 'get'
+                })
+                .then(response => response.json())
+                .then(jsonData => fillBanner(jsonData))
+            }
+
+            function fillBanner(banner_data){
+                li_html = ''
+                banner_html = ''
+                $.each(banner_data, function(i, item) {
+                    li_html += '<li data-target="#carouselExampleIndicators" data-slide-to="' + i + '"></li>'
+                    
+                    banner_html += '<div class="carousel-item"><img src="' + item + '" class="d-block w-100" alt="..."></div>'
+                })
+
+                $(".carousel-indicators").html(li_html)
+                $(".carousel-inner").html(banner_html)
+                $(".carousel-inner").children().first().addClass("active")
+            }
+
+            function showDetails(id) {
+                // clear first
+                cleanDetails()
+                
+                fetch('/detail?id=' + id, {
+                    method: 'get'
+                })
+                .then(response => response.json())
+                .then(jsonData => addDetails(jsonData))
+            }
+
+            function cleanDetails() {
+                $("#details_img").attr("src", "")
+                $("#details_name").text("")
+                $("#details_author").text("")
+                $("#details_author").attr("href", "")
+                $("#details_type").html("")
+                $("#details_status").text("")
+                $("#details_price").text("")
+                $("#details_describe").html("")
+                $("#details_correlation").html("")
+            }
+
+            function addDetails(data) {
+                $("#details_img").attr("src", data.img)
+                $("#details_name").text(data.name)
+                $("#details_author").text(data.author)
+                $("#details_author").attr("href", "/query?from=author&name=" + data.author)
+                
+                type_html = ''
+                $.each(data.type, function(i, item){
+                    type_html += '<a href="/query?from=type&name=' + item + '">' + item + '</a>，'
+                })
+                $("#details_type").html(type_html.substring(0, type_html.length - 1))
+
+                $("#details_status").text(data.status)
+                $("#details_price").text("¥" + data.price)
+                $("#details_describe").html(data.describe)
+
+                correlation_html = ''
+                $.each(data.correlation, function(i, item){
+                    correlation_html += '<td onclick="showDetails(' + item.id + ')"><img src="' + item.img + '" width="180px" height="250px"></td>'
+                })
+                $("#details_correlation").html(correlation_html)
+            }
+
+            function addItem(itemdata) {
+                var lastDiv = $("#item > div:last")
+                // TODO 从 itemdata 取数据并更改 dom 树。
+                div = $('<div class="col-lg-3" data-toggle="modal" data-target="#exampleModalCenter" onclick="showDetails('+ itemdata.id + ')">\
+                    <div class="card  border-primary">\
+                    <img class="card-img-top" src="'+ itemdata.img + '">\
+                    <div class="card-footer text-muted">\
+                    <div class="numbers pull-right">\
+                    <i class="fa fa-eye">'+ itemdata.eye + '</i>\
+                    <i class="fa fa-heart">' + itemdata.heart + '</i>\
+                    <i class="fa fa-cloud-download ng-scope" ng-if="resource.downloadUrl"></i>\
+                    <span ng-if="resource.downloadUrl" class="ng-binding ng-scope">' + itemdata.download + '</span>\
+                    </div>\
+                    </div>\
+                    </div>\
+                    </div>')
+                // 注意适配手机
+                if ((lastDiv.length > 0) && (lastDiv.children().length < 4)) {
+                    lastDiv.append(div)
+                } else {
+                    row_null = $(' <div class="form-inline"></div>\
+                        <div class="clearfix" style="margin-bottom: 20px;">')
+
+                    row = $('<div class="row"></div>')
+                    row.append(div)
+                    $("#item").append(row_null).append(row)
+                }
+            }
+        </script>
+    </head>
+    <body>
+        <nav class="navbar navbar-light justify-content-between sticky-top" style="background-color: #e3f2fd;">
+            <!-- 在这儿记得换 logo-->
+            <a class="navbar-brand col-lg-1 col-xl-1">TangGo</a>
+            <div class="form-inline">
+                <input class="form-control col-10 col-lg-8" type="search" placeholder="Search" aria-label="Search" id='query_name' oninput='input_change()'>
+                <button class="btn btn-outline-success col-3 " type="submit"  onclick="query()">Search</button>
+            </div>
+        </nav>
+
+        <div class="container-fluid">
+            <div id="carouselExampleIndicators" class="carousel slide" data-ride="carousel" id="banner">
+                <ol class="carousel-indicators"></ol>
+                <div class="carousel-inner"></div>
+                <a class="carousel-control-prev" href="#carouselExampleIndicators" role="button" data-slide="prev">
+                    <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+                    <span class="sr-only">Previous</span>
+                </a>
+                <a class="carousel-control-next" href="#carouselExampleIndicators" role="button" data-slide="next">
+                    <span class="carousel-control-next-icon" aria-hidden="true"></span>
+                    <span class="sr-only">Next</span>
+                </a>
+            </div>
+
+            <div class="container" id="item"></div>
+
+            <div class="modal fade" id="exampleModalCenter" tabindex="-1" role="dialog" aria-labelledby="exampleModalCenterTitle" aria-hidden="true">
+                <div class="modal-dialog modal-lg modal-centered" role="document">
+                    <div class="modal-content">
+                        <div class="modal-body" style="background:#D6D6D6">
+                            <div class="container-fluid">
+                                <div class="row">
+                                    <div class="col-lg-5" style="margin-bottom: 20px">
+                                        <img id="details_img" src="#" class="col-lg-12 modal-dialog-centered">
+                                    </div>
+                                    <div style="margin-left: 20px;">
+                                        <div class="row">
+                                            <div><h1 class="modal-title" id="details_name"></h1></div>
+                                        </div>
+                                        <div class="row" style="margin-top:20px">
+                                            <h5>作者：<a href="#" id="details_author"></a></h5>
+                                        </div>
+                                        <div class="row" style="margin-top:20px">
+                                            <h5>类型：<span id="details_type"></span></h5>
+                                        </div>
+                                        <div class="row" style="margin-top:20px">
+                                            <h5>状态：<span id="details_status"></span></h5>
+                                        </div>
+                                        <div class="row" style="margin-top:80px">
+                                            <button type="button" class="btn btn-info" data-toggle="modal" data-target="#wechat">Pay:&nbsp;&nbsp;<span id="details_price"></span></button>
+                                            <div class="modal fade" id="wechat" tabindex="-2" role="dialog" aria-labelledby="exampleModalCenterTitle" aria-hidden="true">
+
+                                                <div class="modal-dialog modal-sm modal-dialog-centered">
+                                                    <div class="card">
+                                                        <img class="card-img-top" src="/wechat.jpg">
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="row" style="margin-top:10px">
+                                            <a class="text-secondary">点击添加微信，转账并告知资源名。</a>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="row">
+                                    <div class="col-lg-5 pre-scrollable" id="details_describe"></div>
+                                    <div class="col-lg-7">
+                                        <div class="row">
+                                            <h3>相关推荐：</h3>
+                                        </div>
+                                        <div class="row" style="margin-top:20px;overflow:scroll;">
+                                            <table class="table">
+                                                <tbody>
+                                                    <tr id="details_correlation">
+                                                    </tr>
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>    
+    </body>
+</html>
